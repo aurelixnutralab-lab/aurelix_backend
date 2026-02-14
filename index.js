@@ -20,7 +20,7 @@ app.use(express.json());
 
 // Routes
 app.post("/api/contact", async (req, res) => {
-  const { name, email, subject, message } = req.body;
+  const { name, email, subject, message, phone } = req.body;
 
   // Basic validation
   if (!name || !email || !subject || !message) {
@@ -50,7 +50,7 @@ app.post("/api/contact", async (req, res) => {
         from: config.smtp.auth.user,
         to: config.toEmail,
       },
-      text: `Name: ${name}\nEmail: ${email}\nSubject: ${subject}\n\nMessage:\n${message}`, // plain text fallback
+      text: `Name: ${name}\nEmail: ${email}\nPhone: ${phone}\nSubject: ${subject}\n\nMessage:\n${message}`, // plain text fallback
       html: `
             <!DOCTYPE html>
             <html lang="en">
@@ -114,6 +114,10 @@ app.post("/api/contact", async (req, res) => {
                                     <div class="data-row">
                                         <span class="label">Email Address</span>
                                         <span class="value">${email}</span>
+                                    </div>
+                                        <div class="data-row">
+                                        <span class="label">Phone Number</span>
+                                        <span class="value">${phone}</span>
                                     </div>
                                     <div class="data-row">
                                         <span class="label">Inquiry Subject</span>
