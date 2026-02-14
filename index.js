@@ -1,45 +1,57 @@
-const express = require('express');
-const nodemailer = require('nodemailer');
-const cors = require('cors');
-const config = require('./config');
+const express = require("express");
+const nodemailer = require("nodemailer");
+const cors = require("cors");
+const config = require("./config");
+const fs = require("fs");
+const path = require("path");
 
 const app = express();
 const port = config.port || 3000;
 
 // Middleware
-app.use(cors({
-    origin: ['http://localhost:5173', 'https://aurelixnutralab.com'],
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type']
-}));
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "https://aurelixnutralab.com"],
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"],
+  }),
+);
 app.use(express.json());
 
 // Routes
-app.post('/api/contact', async (req, res) => {
-    const { name, email, subject, message } = req.body;
+app.post("/api/contact", async (req, res) => {
+  const { name, email, subject, message } = req.body;
 
-    // Basic validation
-    if (!name || !email || !subject || !message) {
-        return res.status(400).json({ error: 'All fields are required (name, email, subject, message).' });
-    }
+  // Basic validation
+  if (!name || !email || !subject || !message) {
+    return res.status(400).json({
+      error: "All fields are required (name, email, subject, message).",
+    });
+  }
 
-    try {
-        // Create transporter
-        const transporter = nodemailer.createTransport(config.smtp);
+  try {
+    // Read and encode logo as base64
+    const logoPath = path.join(__dirname, "images", "logo.png");
+    const logoBuffer = fs.readFileSync(logoPath);
+    const logoBase64 = logoBuffer.toString("base64");
+    const logoDataUri = `data:image/png;base64,${logoBase64}`;
 
-        // Setup email data
-        const mailOptions = {
-            from: `"${name}" <${email}>`, // This shows in your inbox
-            replyTo: email,               // The user's email for replies
-            to: config.toEmail,            // list of receivers
-            subject: `Contact Inquiry: ${subject}`, // Subject line
-            // The envelope is used for the actual SMTP delivery
-            envelope: {
-                from: config.smtp.auth.user,
-                to: config.toEmail
-            },
-            text: `Name: ${name}\nEmail: ${email}\nSubject: ${subject}\n\nMessage:\n${message}`, // plain text fallback
-            html: `
+    // Create transporter
+    const transporter = nodemailer.createTransport(config.smtp);
+
+    // Setup email data
+    const mailOptions = {
+      from: `"${name}" <${email}>`, // This shows in your inbox
+      replyTo: email, // The user's email for replies
+      to: config.toEmail, // list of receivers
+      subject: `Contact Inquiry: ${subject}`, // Subject line
+      // The envelope is used for the actual SMTP delivery
+      envelope: {
+        from: config.smtp.auth.user,
+        to: config.toEmail,
+      },
+      text: `Name: ${name}\nEmail: ${email}\nSubject: ${subject}\n\nMessage:\n${message}`, // plain text fallback
+      html: `
             <!DOCTYPE html>
             <html lang="en">
             <head>
@@ -87,8 +99,7 @@ app.post('/api/contact', async (req, res) => {
                     <table class="main">
                         <tr>
                             <td class="header">
-                                <h1>AURELIX</h1>
-                                <p>NUTRA LAB · QUALITY & WELLNESS</p>
+                                <img src="${logoDataUri}" alt="Aurelix Nutra Lab Logo" width="220" style="margin-top: 15px;">
                             </td>
                         </tr>
                         <tr>
@@ -112,7 +123,7 @@ app.post('/api/contact', async (req, res) => {
 
                                 <span class="message-title">Correspondence Content</span>
                                 <div class="message-content">
-                                    ${message.replace(/\n/g, '<br>')}
+                                    ${message.replace(/\n/g, "<br>")}
                                 </div>
                             </td>
                         </tr>
@@ -134,26 +145,27 @@ app.post('/api/contact', async (req, res) => {
                 </center>
             </body>
             </html>
-            ` // html body
-        };
+            `, // html body
+    };
 
-        // Send mail with defined transport object
-        let info = await transporter.sendMail(mailOptions);
+    // Send mail with defined transport object
+    let info = await transporter.sendMail(mailOptions);
 
-        console.log('Message sent: %s', info.messageId);
-        res.status(200).json({ success: 'Email sent successfully!' });
-
-    } catch (error) {
-        console.error('Error sending email:', error);
-        res.status(500).json({ error: 'Failed to send email. Check SMTP configuration.' });
-    }
+    console.log("Message sent: %s", info.messageId);
+    res.status(200).json({ success: "Email sent successfully!" });
+  } catch (error) {
+    console.error("Error sending email:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to send email. Check SMTP configuration." });
+  }
 });
 
-app.get('/health', (req, res) => {
-    res.status(200).send('Service is up and running');
+app.get("/health", (req, res) => {
+  res.status(200).send("Service is up and running");
 });
 
 // Start Server
 app.listen(port, () => {
-    console.log(`Server is running at http://localhost:${port}`);
+  console.log(`Server is running at http://localhost:${port}`);
 });
